@@ -1,0 +1,55 @@
+#/bin/bash
+date=$(date);
+# Start the graph 
+echo "digraph GIT {"
+echo "label=\"$0 $@\n$date\";"
+echo "concentrate=true;"
+# Print node links
+# how to skip the '*' character?
+for branchname in `git branch`; do
+  # Get the output from git log
+  log=$(git log "$branchname" --pretty="%H -> %P ;" "$@" 2> /dev/null);
+  # If $log is non-empty...
+  if [[ $log ]]; then 
+    # Create write out a cluster with all links in it.
+    echo "	subgraph cluster_$branchname {";
+    echo "	  label=\"Branch: $branchname\";";
+    echo "    fontsize=50;";
+    echo "    color=blue;";
+    echo $log | \
+# This will work for commits with two parents; but not an 'octopus merge' with 3.
+      sed 's/\([0-9a-f]\{40\} *-> *\)\([0-9a-f]\{40\}\) *\([0-9a-f]\{40\}\)/\1\2\;\1\3/g' | \
+# This will work for commits with three parents e.g. an octopus merge .
+      sed 's/\([0-9a-f]\{40\} *-> *\)\([0-9a-f]\{40\}\) *\([0-9a-f]\{40\}\) *\([0-9a-f]\{40\}\)/\1\2\;\1\3;\1\4/g' | \
+# Ensures that the root commit has something to link to.
+      sed 's/-> *;/-> \"root\";/' |\
+# Set direction to back
+      sed 's/;/\[dir=back\];/g' |\
+# puts quotes around all commit hashes
+      sed 's/[0-9a-f]\{40\}/\"&\"/g' |\
+      sed 's/\[dir=back\];/&\'$'\n /g' 
+# puts quotes around all commit hashes
+    echo "	}";
+  fi;
+done;
+
+# Write out all of the nodes with an appropriate label.
+echo \# Node list
+git log --all --boundary --pretty="	__HASH__%H [label=__DOUBLE_QUOTE__%d__NEW_LINE__%s__NEW_LINE__%cr__DOUBLE_QUOTE__,shape=box]" "$@"| \
+# Escape all escape chars
+  sed 's/\\/\\\\/g' |\
+# Escape all quote marks
+  sed 's/\"/\\\"/g' |\
+# Replaces newlines immediately following the label tag
+  sed 's/__DOUBLE_QUOTE____NEW_LINE__/__DOUBLE_QUOTE__/g' |\
+# Replace __DOUBLE_QUOTE__ with an escapes "
+  sed 's/__DOUBLE_QUOTE__/\"/g' |\
+# Replace __NEW_LINE__ with newline character 
+  sed 's/__NEW_LINE__/\\n/g' |\
+# puts quotes around all commit hashes 
+  sed 's/__HASH__\([0-9a-f]\{40\}\)/\"\1\"/g' |\
+# Change the style of nodes that are refs
+  sed 's/\[label=\" (/[style=filled,color=goldenrod,bordercolor=black,label=\"(/g' ;
+
+# End the graph 
+echo "}"
