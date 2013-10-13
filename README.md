@@ -4,9 +4,10 @@ git-graphviz
 Produce [Graphviz][1] graphs of your git repository history.
 
 Commits are grouped by branch name and labelled with:
-1. ref
-2. commit message
-3. relative commit time
+
+  1. ref
+  2. commit message
+  3. relative commit time
 
 Any commits which are a head and tag refs are each given a different style to ordinary commits.
 
