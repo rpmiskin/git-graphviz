@@ -2,54 +2,68 @@
 date=$(date);
 # Start the graph 
 echo "digraph GIT {"
-echo "label=\"$0 $@\n$date\";"
+echo "fontname=\"Helvetica\";"
+echo "label=\"$0 $@\n$PWD\n$date\";"
 # Print node links
 # how to skip the '*' character?
-for branchname in `git branch`; do
+for branchname in `git for-each-ref --format="%(refname)" --sort=committerdate refs/heads`; do
+  cleanName=`echo $branchname | sed 's/\//_/g'`
+  branchLabelName=`echo $branchname | sed 's/refs\/[A-Za-z]*\///'`
   # Get the output from git log
   log=$(git log "$branchname" --pretty="%H -> %P ;" "$@" 2> /dev/null);
   # If $log is non-empty...
-  if [[ $log ]]; then 
+  if [[ $log ]]; then
     # Create write out a cluster with all links in it.
-    echo "	subgraph cluster_$branchname {";
-    echo "    label=\"$branchname\";";
+    echo "	subgraph cluster_$cleanName {";
+    echo "    label=\"$branchLabelName\";";
     echo "    fontsize=24;";
     echo "    color=blue;";
     echo "    style=dotted;";
     echo $log | \
 # This will work for commits with two parents; but not an 'octopus merge' with 3.
-      sed 's/\([0-9a-f]\{40\} *-> *\)\([0-9a-f]\{40\}\) *\([0-9a-f]\{40\}\)/\1\2\;\1\3/g' | \
+      sed 's/\( *[0-9a-f]\{40\} *-> *\)\([0-9a-f]\{40\}\) *\([0-9a-f]\{40\}\)/\1\2\;\1\3/g' | \
 # This will work for commits with three parents e.g. an octopus merge .
-      sed 's/\([0-9a-f]\{40\} *-> *\)\([0-9a-f]\{40\}\) *\([0-9a-f]\{40\}\) *\([0-9a-f]\{40\}\)/\1\2\;\1\3;\1\4/g' | \
+      sed 's/\( *[0-9a-f]\{40\} *-> *\)\([0-9a-f]\{40\}\) *\([0-9a-f]\{40\}\) *\([0-9a-f]\{40\}\)/\1\2\;\1\3;\1\4/g' | \
 # Ensures that the root commit has something to link to.
       sed 's/-> *;/-> \"root\";/' |\
 # Set direction to back
       sed 's/;/\[dir=back\];/g' |\
 # puts quotes around all commit hashes
       sed 's/[0-9a-f]\{40\}/\"&\"/g' |\
-      sed 's/\[dir=back\];/&\'$'\n /g' 
-# puts quotes around all commit hashes
+# Split any merge commits over multiple lines
+      sed 's/\[dir=back\];/&\'$'\n/g'
     echo "  }";
   fi;
 done;
 
 # Write out all of the nodes with an appropriate label.
 echo \# Node list
-git log --all --boundary --pretty="  __HASH__%H [label=__DOUBLE_QUOTE__%d__NEW_LINE__%s__NEW_LINE__%cr__DOUBLE_QUOTE__,shape=box]" "$@"| \
+git log --decorate=full --all --boundary --pretty="  __HASH__%H [label=__DOUBLE_QUOTE__%d__NEW_LINE__%s__NEW_LINE__%cr__DOUBLE_QUOTE__,shape=__SHAPE__,style=__STYLE__,color=__COLOR__,fillcolor=__FILLCOLOR__]" "$@"|
 # Escape all escape chars
-  sed 's/\\/\\\\/g' |\
+  sed 's/\\/\\\\/g' |
 # Escape all quote marks
-  sed 's/\"/\\\"/g' |\
+  sed 's/\"/\\\"/g' |
 # Replaces newlines immediately following the label tag
-  sed 's/__DOUBLE_QUOTE____NEW_LINE__/__DOUBLE_QUOTE__/g' |\
+  sed 's/__DOUBLE_QUOTE____NEW_LINE__/__DOUBLE_QUOTE__/g' |
 # Replace __DOUBLE_QUOTE__ with an escapes "
-  sed 's/__DOUBLE_QUOTE__/\"/g' |\
-# Replace __NEW_LINE__ with newline character 
-  sed 's/__NEW_LINE__/\\n/g' |\
+  sed 's/__DOUBLE_QUOTE__/\"/g' |
+# Replace __NEW_LINE__ with newline character
+  sed 's/__NEW_LINE__/\\n/g' |
 # puts quotes around all commit hashes 
-  sed 's/__HASH__\([0-9a-f]\{40\}\)/\"\1\"/g' |\
-# Change the style of nodes that are refs
-  sed 's/\[label=\" (/[style=filled,fillcolor=goldenrod1,color=black,label=\"(/g' ;
+  sed 's/__HASH__\([0-9a-f]\{40\}\)/\"\1\"/g' |
+# Change the style of nodes that are head refs
+  sed '/(.*\/heads\/.*)/s/__STYLE__/filled/' |
+  sed '/(.*\/heads\/.*)/s/__SHAPE__/tripleoctagon/' |
+  sed '/(.*\/heads\/.*)/s/__FILLCOLOR__/salmon/' |
+# Change the style of nodes that are tag refs
+  sed '/(.*\/tags\/.*)/s/__STYLE__/filled/' |
+  sed '/(.*\/tags\/.*)/s/__SHAPE__/box/' |
+  sed '/(.*\/tags\/.*)/s/__FILLCOLOR__/palegreen1/' |
+# Change the style of all remaining nodes
+  sed 's/__SHAPE__/box/' |
+  sed 's/__STYLE__/filled/' |
+  sed 's/__FILLCOLOR__/white/' |
+  sed 's/__COLOR__/black/'
 
 # End the graph 
 echo "}"
