@@ -51,7 +51,10 @@ These documents quickly became out of date, and did not give a clear indication
 of how long a topic branch had been away from master. Creating this script
 provided a mechanism for automatically creating management friendly branch reports. 
 
+The intial implementation idea came from the [git wiki][3].
+
 
 [1]: http://www.graphviz.org "Graphviz"
 [2]: http://nvie.com/posts/a-successful-git-branching-model/ "nvie.com"
+[3]: https://git.wiki.kernel.org/index.php/Aliases#Use_graphviz_for_display "Git Wiki"
 
