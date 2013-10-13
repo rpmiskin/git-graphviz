@@ -4,29 +4,35 @@ git-graphviz
 Produce [Graphviz][1] graphs of your git repository history.
 
 Commits are grouped by branch name and labelled with:
-1) ref
-2) commit message
-3) relative commit time
+1. ref
+2. commit message
+3. relative commit time
 
-Any commits which are at the tip of a branch are highlighted in a different colour.
+Any commits which are a head and tag refs are each given a different style to ordinary commits.
 
 ![example image](./example.png "example graph")
 
 Usage
 -----
 To produce a dot file for the current repository:
+
 `git-graphiz > graph.dot`
 
 git-graphviz uses git log, and all command line arguments are passed to it. This means you can do things like:
+
 `git-graphviz --since="4 weeks"` 
 
-To convert the dot file to a pdf file do use dot:
+To convert the dot file to a pdf file use dot:
+
 `dot -Tpdf -o graph.pdf graph.dot`
 
 Alternatively to create a png:
+
 `dot -Tpng -o graph.png graph.png`
 
+
 The output from git-graphviz can be piped directly into dot:
+
 `git-graphviz --since="4 weeks" | dot -Tpdf -o graph.pdf`
 
 Limitations
